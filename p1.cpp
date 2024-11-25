@@ -166,58 +166,22 @@ mpz_class NthRecur(long n){
 }
 
 /** **************************************************************************************
-
-@pre:
-@post: 
+Function to count the number of strings of length n with 'a' as the middle symbol.
+@pre: receives an odd integer n
+@post: returns the number of valid strings of length n with 'a' as the middle symbol.
 *****************************************************************************************/
-void countMiddleA(int n, mpz_t result) {
+mpz_class countStringsWithMiddleA(long n) {
     if (n % 2 == 0) {
-        std::cout << "n must be an odd integer for this problem.\n";
-        mpz_set_ui(result, 0);
-        return;
+        return 0; // n must be odd
     }
-
-    std::vector<mpz_t> prev(numberOfStates);
-    std::vector<mpz_t> next(numberOfStates);
-
-    for (int i = 0; i < numberOfStates; ++i) {
-        mpz_init(prev[i]);
-        mpz_init(next[i]);
-        mpz_set_ui(prev[i], 1);
-        mpz_set_ui(next[i], 0);
-    }
-
-    int middleIndex = n / 2;
-
-    for (int i = 1; i <= n; ++i) {
-        for (int DFAState : DFAStates) {
-            std::string currentBuffer = decode(DFAState);
-
-            // Only allow 'a' at the middle index when processing middleIndex + 1
-            if (i == middleIndex + 1) {
-                for (char c : characters) {
-                    if (c == 'a') {
-                        std::string tempBuffer = currentBuffer + c;
-                        if (tempBuffer.length() > bufferLength)
-                            tempBuffer = tempBuffer.substr(1);
-                        //get the accepted transition for the tempBuffer value
-                        int acceptedTran = encode(tempBuffer);
-                        //Ensure the transition from the previous state (prev[acceptedTran]) is reflected in the next state's count
-                        mpz_add(next[DFAState], next[DFAState], prev[acceptedTran]);
-                    }
-                }
-            } else {
-                countAccepting(DFAState, prev, next);
-            }
-        }
-
-        for (size_t j = 0; j < numberOfStates; ++j) {
-            mpz_set(prev[j], next[j]);
-            mpz_set_ui(next[j], 0);
+    long midIndex = n / 2;
+    mpz_class count = 0;
+    for (char c : {'a', 'b', 'c', 'd'}) {
+        if (c == 'a') {
+            count += NthRecur(midIndex) * NthRecur(midIndex);
         }
     }
-
-    mpz_set(result, prev[0]);
+    return count;
 }
 
 /** **************************************************************************************
