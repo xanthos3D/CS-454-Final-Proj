@@ -112,48 +112,6 @@ long transitionFunction(long currState, char input){
 }
 
 /** **************************************************************************************
-transition function which takes us to a new state given a current state
-@pre: recieves a long which represents our state, and a char representing a char in our
-alphabet
-@post: returns the next state using the current state and the given character.
-*****************************************************************************************/
-long NAndMtransitionFunction(long currState, char input){
-    
-    //figured out the problem. ok so we have strings like abcdabcd right. this is valid if
-    // l = 8 for our language l
-    //and a = 2.
-
-    //the reason this is not being displayed in later itterations is because of our transition function
-    //this cas as an example. aabcdbbbdc this fails the original circumstance because there is not 
-    //every character present in any substring of length 6.
-
-    //but a string like abcdabcdabcdabcdabcdabcdabcdabcd should be a case where there are characters present in 
-    //any substring, with length = 32, and a's = 8
-
-
-
-    //if we are already at fail state, keep returning it
-    if(currState == FAIL_STATE){
-        return FAIL_STATE;
-    }
-    string charsSeen = decodeToString(currState);
-    
-    charsSeen += input;
-    //if we are at length 6, check substring for validity
-    if(charsSeen.length() == 6){
-        if(isValid(charsSeen)){
-            //pop the front character (looking at next substring of 6)
-            charsSeen.erase(charsSeen.begin());
-        }
-        else{
-            return FAIL_STATE;
-        }
-    }
-    return encodeToState(charsSeen);
-
-}
-
-/** **************************************************************************************
 recursive helper. recurses up to n testing every combination by checking ever state 
 transition given empty set up to strings of length n. alsu uses dynamic programming
 to compute possibility effeciently by storing previously calculated values in a 2d 
@@ -207,6 +165,54 @@ mpz_class NthRecur(long n){
 }
 
 /** **************************************************************************************
+transition function which takes us to a new state given a current state
+@pre: recieves a long which represents our state, and a char representing a char in our
+alphabet
+@post: returns the next state using the current state and the given character.
+*****************************************************************************************/
+long NAndMtransitionFunction(long currState, char input){
+    
+    //figured out the problem. ok so we have strings like abcdabcd right. this is valid if
+    // l = 8 for our language l
+    //and a = 2.
+
+    //the reason this is not being displayed in later itterations is because of our transition function
+    //this cas as an example. aabcdbbbdc this fails the original circumstance because there is not 
+    //every character present in any substring of length 6.
+
+    //but a string like abcdabcdabcdabcdabcdabcdabcdabcd should be a case where there are characters present in 
+    //any substring, with length = 32, and a's = 8
+    //but this comes up as zero. why?
+
+    //perhaps the memory storage is for the transition function?
+
+    //a buffer of a's?
+
+    //idea agian. use the 2d array with states and  the amount of n's to produce a state that is the fail state or not.
+
+    //if we are already at fail state, keep returning it
+    if(currState == FAIL_STATE){
+        return FAIL_STATE;
+    }
+
+    string charsSeen = decodeToString(currState);
+    
+    charsSeen += input;
+    //if we are at length 6, check substring for validity
+    if(charsSeen.length() == 6){
+        if(isValid(charsSeen)){
+            //pop the front character (looking at next substring of 6)
+            charsSeen.erase(charsSeen.begin());
+        }
+        else{
+            return FAIL_STATE;
+        }
+    }
+    return encodeToState(charsSeen);
+
+}
+
+/** **************************************************************************************
 recursive helper. recurses up to n testing every combination by checking ever state 
 transition given empty set up to strings of length n. alsu uses dynamic programming
 to compute possibility effeciently by storing previously calculated values in a 2d 
@@ -217,7 +223,7 @@ are calculated.
 @post: return the number of valid string of length n or recurse from a given state to
 transition(state,'a')+transition(state,'b')+transition(state,'c')+transition(state,'d')
 *****************************************************************************************/
-mpz_class NAndMthRecurHelper(long n,long currState,mpz_class LS[][1367],mpz_class AS[][1367],long m,long As){
+mpz_class NAndMthRecurHelper(long n,long currState,mpz_class AsArray[][1367],long m,long As){
     //base casses
 
     //first case, regardless of amount of a's if we go to the fail state return zero for both memory storages.
@@ -225,7 +231,7 @@ mpz_class NAndMthRecurHelper(long n,long currState,mpz_class LS[][1367],mpz_clas
         
         //given length, and at the state set that to 0
         //LS[n][currState] = 0;
-        return AS[m][currState] = 0;
+        return AsArray[As][currState] = 0;
 
     // checking if length is 1 meaning we have a string of the correct length for L
     }else if(n == 1){
@@ -235,24 +241,24 @@ mpz_class NAndMthRecurHelper(long n,long currState,mpz_class LS[][1367],mpz_clas
         if(m == As){
 
             //return 1 since we have a string with correct length, and A's = M's
-            return AS[m][currState] = 1;
+            return AsArray[As][currState] = 1;
         // otherwise we have the correct string length, but not the correct amount of a's 
         }else{
-            return AS[m][currState] = 0;
+            return AsArray[As][currState] = 0;
         }
     
     //recursively call  testing the current state and the four other states it can go to.
-    }else if(AS[m][currState] != -1){
+    }else if(AsArray[As][currState] != -1){
 
         //LS[n][currState];
-        return AS[m][currState];
+        return AsArray[As][currState];
 
     }else{
-       return AS[m][currState] = 
-       NAndMthRecurHelper(n-1,transitionFunction(currState,'a'),LS,AS,m,As+1) +
-       NAndMthRecurHelper(n-1,transitionFunction(currState,'b'),LS,AS,m,As) + 
-       NAndMthRecurHelper(n-1,transitionFunction(currState,'c'),LS,AS,m,As) +
-       NAndMthRecurHelper(n-1,transitionFunction(currState,'d'),LS,AS,m,As) ;
+       return AsArray[As][currState] = 
+       NAndMthRecurHelper(n-1,transitionFunction(currState,'a'),AsArray,m,As+1) +
+       NAndMthRecurHelper(n-1,transitionFunction(currState,'b'),AsArray,m,As) + 
+       NAndMthRecurHelper(n-1,transitionFunction(currState,'c'),AsArray,m,As) +
+       NAndMthRecurHelper(n-1,transitionFunction(currState,'d'),AsArray,m,As) ;
     }
    
 }
@@ -264,19 +270,6 @@ then calls our recursive helper with a empty set and n.
 @post: return the number of valid string of length n that are accepted with our dfa.
 *****************************************************************************************/
 mpz_class NAndMthRecur(long n,long m){
-
-    //need a data structure that can store  our previous values we calculated recursively.
-    // if we use a 2d array then we hava strings of length n
-    mpz_class LS[n+2][1367];
-
-    //set values in array to be -1 so we can compare them in the helper
-    //to be clear we have 2d array that stores, the length of the string as one axis
-    //and the states in the dfa as the other.
-    for (int i = 0; i < n+2; ++i) {
-        for (int j = 0; j < 1367; ++j) {
-            LS[i][j] = -1;
-        }
-    }
 
     //need a data structure that can store  our previous values we calculated recursively.
     // if we use a 2d array then we hava strings of length n
@@ -294,7 +287,7 @@ mpz_class NAndMthRecur(long n,long m){
     long As = 0;
     //length,emptystate,Length state array, a's array,number of as we want, number of As we start with which should be zero.
 
-    return NAndMthRecurHelper(n+1,encodeToState(""),LS,AS,m,As);
+    return NAndMthRecurHelper(n+1,encodeToState(""),AS,m,As);
 }
 
 
