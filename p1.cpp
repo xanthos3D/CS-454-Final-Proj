@@ -3,6 +3,8 @@
 #include <gmpxx.h>
 #include <vector>
 #include <cmath>
+#include <vector>
+
 using namespace std;
 //run code with
 //g++ p1.cpp -lgmp -lgmpxx
@@ -111,6 +113,7 @@ long transitionFunction(long currState, char input){
 
 }
 
+
 /** **************************************************************************************
 recursive helper. recurses up to n testing every combination by checking ever state 
 transition given empty set up to strings of length n. alsu uses dynamic programming
@@ -161,86 +164,135 @@ mpz_class NthRecur(long n){
             arr[i][j] = -1;
         }
     }
-
     return NthRecurHelper(n+1,encodeToState(""),arr);
 }
 
+
 /** **************************************************************************************
-Function to count the number of strings of length n with 'a' as the middle symbol.
-@pre: receives an odd integer n
-@post: returns the number of valid strings of length n with 'a' as the middle symbol.
+recursive helper. recurses up to n testing every combination by checking ever state 
+transition given empty set up to strings of length n. alsu uses dynamic programming
+to compute possibility effeciently by storing previously calculated values in a 2d 
+array all recursive calls have acess to.
+@pre: recieve a int representing length n + 1, a long representing the current state
+in our dfa, and a mpz_class 2d array which we use to store our results once they
+are calculated.
+@post: return the number of valid string of length n or recurse from a given state to
+transition(state,'a')+transition(state,'b')+transition(state,'c')+transition(state,'d')
 *****************************************************************************************/
-mpz_class countStringsWithMiddleA(long n) {
-    if (n % 2 == 0) {
-        return 0; // n must be odd
+mpz_class NAndMthRecurHelper(long n,long currState,std::vector<std::vector<std::vector<mpz_class> > > vect3d,long m,long As){
+    //base casses
+
+    // uses 3d array, but overhead is way too bug :-;. could use the prev next like in richards? seems like the only way
+    //so what we need to do is,
+    //1) get my recurvisve calls to work in reverse? instead of startin at n and going to n = 1 start from n = 1 and 
+    //go to n
+    //
+
+    //first case, regardless of amount of a's if we go to the fail state return zero for both memory storages.
+    if(currState == FAIL_STATE){
+        
+        //given length, and at the state set that to 0
+        return vect3d[n][As][currState] = 0;
+
+    // checking if length is 1 meaning we have a string of the correct length for L
+    }else if(n == 1){
+
+        //Larray[n][currState] = 1;
+        //check to see if the number of A's == m
+        if(m == As){
+
+            //return 1 since we have a string with correct length, and A's = M's
+            return vect3d[n][As][currState] = 1;
+        // otherwise we have the correct string length, but not the correct amount of a's 
+        }else{
+            return vect3d[n][As][currState] = 0;
+        }
+    
+    //recursively call  testing the current state and the four other states it can go to.
+    }else if(vect3d[n][As][currState] != -1){
+
+        return vect3d[n][As][currState];
+
+    }else{
+
+       // find a way to maintain L and A's 
+       return vect3d[n][As][currState] = 
+       NAndMthRecurHelper(n-1,transitionFunction(currState,'a'),vect3d,m,As+1) +
+       NAndMthRecurHelper(n-1,transitionFunction(currState,'b'),vect3d,m,As) + 
+       NAndMthRecurHelper(n-1,transitionFunction(currState,'c'),vect3d,m,As) +
+       NAndMthRecurHelper(n-1,transitionFunction(currState,'d'),vect3d,m,As) ;
     }
-    long midIndex = n / 2;
-    mpz_class count = 0;
-    for (char c : {'a', 'b', 'c', 'd'}) {
-        if (c == 'a') {
-            count += NthRecur(midIndex) * NthRecur(midIndex);
+   
+}
+
+/** **************************************************************************************
+main recursive set up function. sets up 2d array for dynamic programming,
+then calls our recursive helper with a empty set and n.
+@pre: recieves a n which represents the length n which our dfa accepts
+@post: return the number of valid string of length n that are accepted with our dfa.
+*****************************************************************************************/
+mpz_class NAndMthRecur(long n,long m){
+
+    //need a data structure that can store  our previous values we calculated recursively.
+    // if we use a 2d array then we hava strings of length n
+
+    //vector<vector<vector<mpz_class>>> vect3d[n+2][m+2][1367];
+    std::vector<std::vector<std::vector<mpz_class> > > vect3d (n+2, std::vector<std::vector<mpz_class> > (m+2, std::vector<mpz_class>(1367,1)));
+
+    for (int i = 0; i < vect3d.size(); i++) {
+            //cout << "Elements at block "
+            //<< i << ": ";
+            // Displaying element at each column,
+            // 0 is the starting iterator,
+            // size() is the ending iterator
+            for (int j = 0; j != vect3d[i].size(); j++) {
+                //cout << "Elements at row "
+                //<< j << ": ";
+                for (int k = 0; k != vect3d[i][j].size(); k++) {
+                    // use all indexes to get the values store in the vector
+                    vect3d[i][j][k] = -1;
+                    //cout << vect3d[i][j][k]<< ' ';
+                    
+                }
+            //cout << endl;
         }
     }
-    return count;
+    
+    //idea to start geting the compund working. lets make a second 2d array to store the accepting states of 
+    long As = 0;
+
+    return NAndMthRecurHelper(n+1,encodeToState(""),vect3d,m,As);
 }
+
+
 
 /** **************************************************************************************
 driver of our program
 *****************************************************************************************/
 int main() {
+    //notes test fails on later cases?
+    //abcdabcdabcdabcdabcdabcdabcdabcd
+    //length 32 a's = 8 should return some values
 
-    //testing for encoding functions
-    /*
-    string buffer = "";
-    // Array of test cases
-    vector<string> testCases = {
-        "a", "b", "c", "d",
-        "aa","ab","ac","ad","ba","bb","bc","bd"
-        "abc", "cba", "aad", "ddd",
-        "aaaa", "abcd", "dddd",
-        "babca", "ddddd",
-        ""
-    };
+   //testing up to 310 values
 
-    // Loop through test cases
-    for (const string& s : testCases) {
-        int state = encodeToState(s);
-        string decodedString = decodeToString(state);
+    //std::cout<< "result for strings length: "<<1<<" ,with "<<1<<" A's: " << NAndMthRecur(1,1)<<std::endl;
 
-        cout << "Test case: '" << s << "'" << endl;
-        cout << "State: " << state << ", Decoded: '" << decodedString << "'" << endl << endl;
-    }
-
-
-    // Test string and state transition process
-    string testInput = "babcaba";  // Example string
-    long state = encodeToState(""); // Start state (empty)
-
-    cout << "Processing input string: " << testInput << endl;
-    
-    for (int i = 0; i < testInput.size(); ++i) {
-        state = transitionFunction(state, testInput[i]);
-        cout << "Input: '" << testInput[i] << "', New State: " << state << endl;
-
-        if (state == FAIL_STATE) {
-            cout << "Transitioned to fail state." << endl;
-            break;
-        }
+   
+    /*for (int i = 0; i < 5; ++i) {
+        std::cout<<"====================================================="<<std::endl;
+        for (int j = 0; j < 5; ++j) {
+            std::cout<< "result for strings length: "<<i<<" ,with "<<j<<" A's: " << NAndMthRecur(i,j)<<std::endl;
+      
         
-    }*/
-
-    //testing up to 310 values
-    /*for (int i = 0; i < 310; ++i) {
-         std::cout<< "result for "<<i<<" : " << NthRecur(i)<<std::endl;
+        }
       
     }*/
+    cout<<endl;
    
-   int input;
-   cout<<"N = ";
+    int input,input1;
+    cout<<"N = ";
     cin>>input;
-    if(input >= 0 && input <= 300){
-        cout<<" Answer:  "<<NthRecur(input)<<endl;
-    }
     while(!cin || input < 0 || input > 300){
         cin.clear();// clears the fail state of the cin stream
         cin.ignore(200, '\n');// clears keyboard buffer for any extra characters
@@ -248,8 +300,22 @@ int main() {
         cout<<"Invalid value input"<<endl;
         cout<<"N = ";
         cin>>input;
-        cout<<" Answer:  "<<NthRecur(input)<<endl;
+
     }
+
+    cout<<"M = ";
+    cin>>input1;
+
+    while(!cin || input1 < 0 || input > 300){
+        cin.clear();// clears the fail state of the cin stream
+        cin.ignore(200, '\n');// clears keyboard buffer for any extra characters
+            //prompts user for another input
+        cout<<"Invalid value input"<<endl;
+        cout<<"M = ";
+        cin>>input1;
+    }
+    std::cout<< "result for strings length: "<<input<<" ,with "<<input1<<" A's: " << NAndMthRecur(input,input1)<<std::endl;
     
     return 0;
 }
+
