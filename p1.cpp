@@ -8,11 +8,8 @@
  *
  * This file can be compiled either using the file CMakeLists.txt included in the zipped folder,
  * or it can be compiled on blue using the following command two commands:
- * FIRST:
- * g++ -o Project_1_CS_454 main.cpp -lgmp
- * SECOND:
- * ./Project_1_CS_454
- *
+    //g++ p1.cpp -lgmp -lgmpxx
+    //./a.out
  * */
 
 
@@ -147,7 +144,7 @@ void generateDFAStates() {
 // Postcondition: Updates the next vector with the count of accepting transitions from the given buffer state.
 // Input: buffer - an integer representing a state; prev - vector of GMP integer types with counts for the previous length; next - vector of GMP integer types to store updated counts.
 // Output: The next vector is updated with the number of accepting transitions from the current buffer state.
-void countAccepting(int n, int a, int buffer, mpz_class prev[][numberOfStates], mpz_class next[][numberOfStates]) {
+void countAccepting(int n, int m, int a, int buffer, mpz_class prev[][numberOfStates], mpz_class next[][numberOfStates]) {
     std::string bufferHolder = decode(buffer);
 
     // Create a 6 character substring with buffer + each character
@@ -177,16 +174,50 @@ void countAccepting(int n, int a, int buffer, mpz_class prev[][numberOfStates], 
         // All Substrings of less thand length 6 are valid
         if (currentSubString.length() < 6) {
             int acceptedTran = encode(currentSubString);
-            next[a][buffer] += prev[a][acceptedTran];
+
+            //if we have a 'a' and a is not greater than m
+            if (c == 'a' && a == m) {
+                //increment a
+                //std::cout<<"found a == m: "<<a<<std::endl;
+                //std::cout<<"a: "<<a<<"buffer: "<<buffer<<" acceptedTran: "<<acceptedTran<<" next[a][buffer]: "<<next[a][buffer]<<" prev[a][acceptedTran]: "<<prev[a][acceptedTran]<<std::endl;
+                //save prev value to next.
+                if(0 != currentSubString.length()){
+                    next[a][buffer] += prev[a][acceptedTran]+1;
+                }
+                //save values a position a
+            // else if a and the values exceeds m
+            }else if (c == 'a' && a <= m) {
+                //increment a
+                a++;
+                //save prev value to next.
+               if(0 != currentSubString.length()){
+                    next[a][buffer] += prev[a][acceptedTran];
+                }
+                //save values a position a
+            // else if a and the values exceeds m
+            }else if(c == 'a'){
+                //set next to zero.
+                next[a][buffer] = 0;
+            }else{
+                //std::cout << a << std::endl;
+                next[a][buffer] = 0;
+            }
+
+
         } else if (valid == 15) { // 15 = 0b1111 which represents all a,b,c,d being seen
             std::string temp = currentSubString.substr(1);
             int acceptedTran = encode(temp);
+            //if we have a 'a' and a is not greater than m
             if (c == 'a') {
-                std::cout << a + 1 << std::endl;
-                a++;
-                next[a][buffer] += prev[a][acceptedTran];
-            } else {
-                std::cout << a << std::endl;
+                // increment a
+                if(a <= m){
+                    a++;
+                    next[a][buffer] += prev[a][acceptedTran];
+                }
+                //save values a position a
+                
+            } else{
+                //std::cout << a << std::endl;
                 next[a][buffer] += prev[a][acceptedTran];
             }
 
@@ -206,7 +237,7 @@ countNumOfAcceptHelp(int i, int n, int m, int a, mpz_class prev[][numberOfStates
     if (i == n) {
         // Check the DFAStates one last time for the final length string
         for (int DFAState: DFAStates) {
-            countAccepting(n, a, DFAState, prev, next);
+            countAccepting(n,m, a, DFAState, prev, next);
         }
         return;
     }
@@ -214,7 +245,7 @@ countNumOfAcceptHelp(int i, int n, int m, int a, mpz_class prev[][numberOfStates
     // Check DFAStates for the total number of validTransitions
     for (int j = 0; j < m + 2; ++j) {
         for (int DFAState: DFAStates) {
-            countAccepting(n, j, DFAState, prev, next);
+            countAccepting(n, m, j, DFAState, prev, next);
         }
     }
 
@@ -257,12 +288,12 @@ void countNumOfAccept(int n, int m, mpz_class &result) {
     // already populated for a string of length 0
     countNumOfAcceptHelp(1, n, m, 0, prev, next);
     result = prev[m + 1][0];
-    std::cout << "Prev array" << std::endl;
+    /*std::cout << "Prev array" << std::endl;
     for (int i = 0; i < numberOfStates; ++i) {
         if (prev[m+ 1][i] > 0) {
             std::cout << prev[m + 1][i] << std::endl;
         }
-    }
+    }*/
 
 }
 
@@ -272,6 +303,20 @@ int main() {
     int n, m;
     bool inputValid = false;
     mpz_class result;
+
+    for (int i = 1; i < 3; ++i) {
+        std::cout<<"====================================================="<<std::endl;
+        for (int j = 1; j < 4; ++j) {
+            countNumOfAccept(i,j, result);
+            std::cout << "For a string of size n = " << i ;
+            std::cout << " with m A's = " << j ;
+            std::cout << " the total number of accepting strings: ";
+            gmp_printf("%Zd\n", result);
+    
+        }
+      
+    }
+/*
     while (!inputValid) {
         std::cout << "Enter the length of the strings n > 0 and n <= 300:  ";
         std::cin >> n;
@@ -287,6 +332,6 @@ int main() {
     }
     std::cout << "For a string of size n = " << n;
     std::cout << " the total number of accepting strings: ";
-    std::cout << result << std::endl;
+    std::cout << result << std::endl;*/
     return 0;
 }
