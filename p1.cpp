@@ -1,255 +1,347 @@
 #include <iostream>
-#include <string>
+#include <cmath>
 #include <gmpxx.h>
 #include <vector>
-#include <cmath>
-using namespace std;
-//run code with
+#include <iomanip>
+
+const int numberOfStates = 1365; // 4^5 + 4^4 + 4^3 + 4^2 + 4^1 + 1 (for empty string)
+const int bufferLength = 5; //Default buffer length
+const char characters[] = {'a', 'b', 'c', 'd'}; //Initialize the alphabet
+int DFAStates[numberOfStates];
+
+
+// Encoding a buffer for right to left using the formula below
+// (charRepresentation) * 4^4 + (charRepresentation) * 4^3 + (charRepresentation) * 4^2 +
+//                       (charRepresentation) * 4^2 + (charRepresentation) * 4^1 + (charRepresentation) * 4^0
+// Precondition: currentBuffer contains only characters from {'a', 'b', 'c', 'd'}.
+// Postcondition: Returns an integer representing the base-4 encoded value of the buffer.
+// Input: currentBuffer - a string consisting of characters 'a', 'b', 'c', or 'd'.
+// Output: Returns an integer representing the base-4 encoding of currentBuffer.
+
 //g++ p1.cpp -lgmp -lgmpxx
 //./a.out
 
-/*
+int encode(std::string currentBuffer) {
+    int encodedSum = 0;
 
+    for (int i = currentBuffer.length() - 1; i >= 0; i--) {
+        int multiple;
 
-*/
-
-
-//int value for the one failing state in the dfa
-static long FAIL_STATE = 1365;
-
-/** **************************************************************************************
-Function to encode a string into an integer using base 4 (1-4)
-@pre:recieves a string which represents a string of our alphabet a,b,c,d
-@post: returns a int that represents a int in our alphabet which is in base 4
- *****************************************************************************************/
-int encodeToState(const string& s) {
-    int encoded = 0;
-    int base = 4;
-    int len = s.length();
-    
-    for (int i = 0; i < len; ++i) {
-        int value;
-        switch (s[i]) {
-            case 'a': value = 1; break;
-            case 'b': value = 2; break;
-            case 'c': value = 3; break;
-            case 'd': value = 4; break;
-            default: value = -1; 
+        switch (currentBuffer.at(i)) {
+            case 'a':
+                multiple = 1;
+                break;
+            case 'b':
+                multiple = 2;
+                break;
+            case 'c':
+                multiple = 3;
+                break;
+            case 'd':
+                multiple = 4;
+                break;
         }
-        //essentially doing 4^len * letter
-        encoded += value * pow(base, len - i - 1);
+
+        encodedSum += pow(4, currentBuffer.length() - 1 - i) * multiple;
     }
-    return encoded;
+    return encodedSum;
 }
 
-/** **************************************************************************************
-Function to decode an integer into a string using base 4 (1-4)
-@pre:recieves a int which represents a string in base four in our alphabet
-@post: returns a string which represents a in base four in our alphabet.
- *****************************************************************************************/
-string decodeToString(int encoded) {
-    string decoded = "";
+
+// Decode a buffer from the lowest bits to the highest using base-4 representation.
+// Precondition: buffer is a non-negative integer representing a valid encoded state.
+// Postcondition: Returns a string decoded from the buffer, containing only characters from {'a', 'b', 'c', 'd'}.
+// Input: buffer - an integer representing the encoded state of a string.
+// Output: Returns a string decoded from the buffer, consisting of characters 'a', 'b', 'c', or 'd'.
+std::string decode(int buffer) {
+    std::string decodedBuffer;
+    char nextChar;
     int base = 4;
 
-    for (int i = 0; i < 5; ++i) { // Since we only care about the last 5 characters
-        int value = (encoded - 1) % base;
-        encoded = (encoded - 1) / base;
+    // Loop until the buffer becomes 0
+    while (buffer > 0) {
 
-        switch (value) {
-            case 0: decoded = 'a' + decoded; break;
-            case 1: decoded = 'b' + decoded; break;
-            case 2: decoded = 'c' + decoded; break;
-            case 3: decoded = 'd' + decoded; break;
+        int lastChar = buffer % base;
+
+        if (lastChar == 0) {
+            buffer = (buffer / base) - 1;
+        } else {
+            buffer /= base;
         }
+
+        switch (lastChar) {
+            case 1:
+                nextChar = 'a';
+                break;
+            case 2:
+                nextChar = 'b';
+                break;
+            case 3:
+                nextChar = 'c';
+                break;
+            case 0:
+                nextChar = 'd';
+                break;
+        }
+
+        // Prepend the character to the decodedBuffer
+        decodedBuffer = nextChar + decodedBuffer;
     }
-    
-    return decoded;
+
+    return decodedBuffer;
 }
 
 
-/** **************************************************************************************
-helper function that checks substring of size 6 for at least 1 occurrence of each symbol in alphabet.
-@pre:seen string of characters seen so far
-@post: returns true if all characters are seen or false if there are missing characters
-*****************************************************************************************/
-bool isValid(string seen){
-    string alphabet = "abcd";
-    for(auto s: alphabet){
-        if(seen.find(s) == string::npos){
-            return false;
+// Recursively generates all possible states of length 0 to 5 for the characters a, b, c, d.
+// Precondition: length is a non-negative integer indicating the desired length of the generated string.
+// Postcondition: Updates the DFAStates array to include all encoded states of the specified lengths.
+// Input: currentBuffer - the current string buffer being generated; length - the remaining length to generate.
+// Output: The DFAStates array is updated to include all states representing strings of length 1 to 5.
+void generateHelper(const std::string &currentBuffer, int length) {
+    // Base case: when the string has reached the desired length
+    // Map the encoded state and its encoded transitions
+    if (length == 0) {
+        //std::cout << currentBuffer << std::endl;
+        int stateID = encode(currentBuffer);
+        // If this state has not been seen, initialize its transition map
+        if (DFAStates[stateID] == 0) {
+            DFAStates[stateID] = stateID;
         }
+        return;
     }
-    return true;
+    // Recursive call: generate strings up to the specified length
+    for (char c: characters) { // Iterate through the character set
+        generateHelper(currentBuffer + c, length - 1); // Append character and recurse
+    }
 }
 
-/** **************************************************************************************
-transition function which takes us to a new state given a current state
-@pre: recieves a long which represents our state, and a char representing a char in our
-alphabet
-@post: returns the next state using the current state and the given character.
-*****************************************************************************************/
-long transitionFunction(long currState, char input){
-    
-    //if we are already at fail state, keep returning it
-    if(currState == FAIL_STATE){
-        return FAIL_STATE;
-    }
-    string charsSeen = decodeToString(currState);
-    
-    charsSeen += input;
-    //if we are at length 6, check substring for validity
-    if(charsSeen.length() == 6){
-        if(isValid(charsSeen)){
-            //pop the front character (looking at next substring of 6)
-            charsSeen.erase(charsSeen.begin());
-        }
-        else{
-            return FAIL_STATE;
-        }
-    }
-    return encodeToState(charsSeen);
 
+// Calls the recursive helper to generate all possible DFA states for lengths up to 5.
+// Precondition: None.
+// Postcondition: The DFAStates array is populated with all possible encoded states up to the specified buffer length.
+// Input: None.
+// Output: The DFAStates array is updated to include all possible states of lengths 1 to 5.
+void generateDFAStates() {
+    for (int length = 1; length <= bufferLength; length++) {
+        generateHelper("", length); // Start with an empty string for each length
+    }
 }
 
-/** **************************************************************************************
-recursive helper. recurses up to n testing every combination by checking ever state 
-transition given empty set up to strings of length n. alsu uses dynamic programming
-to compute possibility effeciently by storing previously calculated values in a 2d 
-array all recursive calls have acess to.
-@pre: recieve a int representing length n + 1, a long representing the current state
-in our dfa, and a mpz_class 2d array which we use to store our results once they
-are calculated.
-@post: return the number of valid string of length n or recurse from a given state to
-transition(state,'a')+transition(state,'b')+transition(state,'c')+transition(state,'d')
-*****************************************************************************************/
-mpz_class NthRecurHelper(long n,long currState,mpz_class arr[][1367]){
-    //base casses
-    
-    //if the state is ever the fail state return zero
-    if(currState == FAIL_STATE){
-        return arr[n][currState] = 0 ;
-    //if the length is 1 then that means we end in a accepting state and should return 1
-    }else if(n == 1){
-        return arr[n][currState] = 1;
 
-    //if the current position in our 2d array isnt -1 then return that value
-    }else if(arr[n][currState] != -1){
-        return arr[n][currState];
+// Counts the number of accepting transitions for a given buffer state.
+// Precondition: buffer is a non-negative integer representing a valid state; prev and next are vectors of size numberOfStates with initialized GMP integer types (mpz_t).
+// Postcondition: Updates the next vector with the count of accepting transitions from the given buffer state.
+// Input: buffer - an integer representing a state; prev - vector of GMP integer types with counts for the previous length; next - vector of GMP integer types to store updated counts.
+// Output: The next vector is updated with the number of accepting transitions from the current buffer state.
+void
+countNumOfAcceptTransition(int n, int m, int a, int buffer, char c, mpz_class prev[][1365], mpz_class next[][1365]) {
+    std::string bufferHolder = decode(buffer);
 
-    //recursively call  testing the current state and the four other states it can go to.
-    }else{
-       return arr[n][currState] = NthRecurHelper(n-1,transitionFunction(currState,'a'),arr) + NthRecurHelper(n-1,transitionFunction(currState,'b'),arr) + NthRecurHelper(n-1,transitionFunction(currState,'c'),arr) + NthRecurHelper(n-1,transitionFunction(currState,'d'),arr) ;
-    }
-   
-}
+    // Create a 6 character substring with buffer + c
+    std::string currentSubString = bufferHolder + c;
+    // BitMask for occurrences of a,b,c,d
+    int valid = 0;
 
-/** **************************************************************************************
-main recursive set up function. sets up 2d array for dynamic programming,
-then calls our recursive helper with a empty set and n.
-@pre: recieves a n which represents the length n which our dfa accepts
-@post: return the number of valid string of length n that are accepted with our dfa.
-*****************************************************************************************/
-mpz_class NthRecur(long n){
-
-    //need a data structure that can store  our previous values we calculated recursively.
-    // if we use a 2d array then we hava strings of length n
-    mpz_class arr[n+2][1367];
-
-    //set values in array to be -1 so we can compare them in the helper
-    for (int i = 0; i < n+2; ++i) {
-        for (int j = 0; j < 1367; ++j) {
-            arr[i][j] = -1;
+    // For each character a,b,c,d seen logical(or) a specific bit of valid
+    for (char i: currentSubString) {
+        switch (i) {
+            case 'a':
+                valid = valid | 0b0001;
+                break;
+            case 'b':
+                valid = valid | 0b0010;
+                break;
+            case 'c':
+                valid = valid | 0b0100;
+                break;
+            case 'd':
+                valid = valid | 0b1000;
+                break;
         }
     }
 
-    return NthRecurHelper(n+1,encodeToState(""),arr);
-}
+    // All Substrings of less thand length 6 are valid
+    if (currentSubString.length() < 6) {
+        //std::cout << "buffer" << buffer << std::endl;
 
-/** **************************************************************************************
-Function to count the number of strings of length n with 'a' as the middle symbol.
-@pre: receives an odd integer n
-@post: returns the number of valid strings of length n with 'a' as the middle symbol.
-*****************************************************************************************/
-mpz_class countStringsWithMiddleA(long n) {
-    if (n % 2 == 0) {
-        return 0; // n must be odd
-    }
-    long midIndex = n / 2;
-    mpz_class count = 0;
-    for (char c : {'a', 'b', 'c', 'd'}) {
+        int acceptedTran = encode(currentSubString);
+        //std::cout << "acceptedTran" << acceptedTran << std::endl;
         if (c == 'a') {
-            count += NthRecur(midIndex) * NthRecur(midIndex);
+            //std::cout << a << std::endl;
+            if (a + 1 <= m) {
+                next[a+1][buffer] += prev[a][acceptedTran];
+                //std::cout << "Next with an a" << next[a+1][buffer]<< std::endl;
+            }
+
+        } else {
+            //std::cout << a << std::endl;
+            next[a][buffer] += prev[a][acceptedTran];
+            //std::cout << "Next with an anything else" << next[a][buffer]<< std::endl;
         }
+        //std::cout << "number of a's " << a << " current string " << currentSubString << std::endl;
+    } else if (valid == 15) { // 15 = 0b1111 which represents all a,b,c,d being seen
+
+        std::string temp = currentSubString.substr(1);
+        int acceptedTran = encode(temp);
+
+        if (c == 'a') {
+            //std::cout << a << std::endl;
+            if (a + 1 <= m) {
+                next[a+1][buffer] += prev[a][acceptedTran];
+            }
+        } else {
+            //std::cout << a << std::endl;
+            next[a][buffer] += prev[a][acceptedTran];
+        }
+        //std::cout << "number of a's " << a << " current string " << temp << std::endl;
     }
-    return count;
+
 }
 
-/** **************************************************************************************
-driver of our program
-*****************************************************************************************/
-int main() {
 
-    //testing for encoding functions
-    /*
-    string buffer = "";
-    // Array of test cases
-    vector<string> testCases = {
-        "a", "b", "c", "d",
-        "aa","ab","ac","ad","ba","bb","bc","bd"
-        "abc", "cba", "aad", "ddd",
-        "aaaa", "abcd", "dddd",
-        "babca", "ddddd",
-        ""
-    };
+// Recursively checks each DFA state's transitions for all strings of length 1 through n.
+// Precondition: i is a positive integer representing the current string length, and n is the maximum string length. prev and next are vectors of size numberOfStates with initialized GMP integer types (mpz_t).
+// Postcondition: Computes the number of valid transitions for strings up to length n and updates the prev and next vectors.
+// Input: i - current string length; n - target maximum string length; prev - vector storing transition counts for length i-1; next - vector storing transition counts for length i.
+// Output: Updates prev and next vectors with the counts for the transitions of strings up to length n.
+void
+countNumOfAcceptHelp(int i, int n, int m, int a, mpz_class prev[][numberOfStates], mpz_class next[][numberOfStates]) {
+    // Base case: the length i string has reached our max length n
 
-    // Loop through test cases
-    for (const string& s : testCases) {
-        int state = encodeToState(s);
-        string decodedString = decodeToString(state);
-
-        cout << "Test case: '" << s << "'" << endl;
-        cout << "State: " << state << ", Decoded: '" << decodedString << "'" << endl << endl;
+    // Check DFAStates for the total number of validTransitions
+    for (int j = 0; j < m + 1; ++j) {
+        for (int DFAState: DFAStates) {
+            for (char c: characters) {
+                countNumOfAcceptTransition(n, m, j, DFAState, c, prev, next);
+            }
+        }
+    }
+    if (i == n) {
+        return;
     }
 
-
-    // Test string and state transition process
-    string testInput = "babcaba";  // Example string
-    long state = encodeToState(""); // Start state (empty)
-
-    cout << "Processing input string: " << testInput << endl;
-    
-    for (int i = 0; i < testInput.size(); ++i) {
-        state = transitionFunction(state, testInput[i]);
-        cout << "Input: '" << testInput[i] << "', New State: " << state << endl;
-
-        if (state == FAIL_STATE) {
-            cout << "Transitioned to fail state." << endl;
-            break;
+    // All DFAStates have been checked for current length so copy the vectors
+    // and initialize next[] with zeros
+    for (int k = 0; k < m + 1; ++k) {
+        for (int DFAState: DFAStates) {
+            prev[k][DFAState] = next[k][DFAState];
+            next[k][DFAState] = 0;
         }
-        
-    }*/
+    }
+    // Recursive step: Increase the size of the string being tested
+    countNumOfAcceptHelp(i + 1, n, m, a, prev, next);
+}
 
-    //testing up to 310 values
-    /*for (int i = 0; i < 310; ++i) {
-         std::cout<< "result for "<<i<<" : " << NthRecur(i)<<std::endl;
+
+// Starts the recursive call chain and reports the results.
+// Precondition: n is a non-negative integer representing the length of strings to consider. result is an initialized GMP integer type (mpz_t).
+// Postcondition: Computes the number of strings of length n that are accepted by the DFA and stores the result in the provided mpz_t variable.
+// Input: n - the length of the strings to be considered; result - a GMP integer to store the final count of accepting strings.
+// Output: Updates result to contain the number of accepting strings of length n.
+void countNumOfAccept(int n, int m, mpz_class &result) {
+
+//    std::vector<mpz_t> prev(numberOfStates); //  A vector of GMP integer types (mpz_t)
+//    std::vector<mpz_t> next(numberOfStates); //  A vector of GMP integer types (mpz_t)
+    mpz_class prev[m + 1][numberOfStates];
+    mpz_class next[m + 1][numberOfStates];
+
+
+    // Initializes all indexes to 1
+    // For a string of length 0 every state is an accepting state
+    for (int i = 0; i < m + 1; ++i) {
+        for (int j = 0; j < numberOfStates; ++j) {
+            if (i == 0) {
+                prev[i][j] = 1;
+            } else {
+                prev[i][j] = 0;
+            }
+
+            next[i][j] = 0;
+        }
+    }
+
+    // Start recursive call chain at string of length 1 since prev is
+    // already populated for a string of length 0
+    countNumOfAcceptHelp(1, n, m, 0, prev, next);
+    result = next[m][0];
+//    for (int i = 0; i < m + 1; ++i) {
+//        for (int j = 0; j < 6; ++j) {
+//            std::cout << prev[m][j] << " " << next[m][j] << " ";
+//        }
+//        std::cout << std::endl;;
+//    }
+
+
+}
+
+
+int main() {
+    generateDFAStates();
+    int n, m;
+    bool inputValid = false;
+    mpz_class result;
+
+    std::cout << "===============================" << std::endl;
+    std::cout << "Summary of Accepting Strings" << std::endl;
+    std::cout << "===============================" << std::endl;
+    /*
+    // Print results for different string lengths and numbers of 'a's
+    for (int i = 0; i < 100; ++i) {
+        std::cout << "Processing strings of size n = " << i << std::endl;
+        std::cout << "-----------------------------------------" << std::endl;
+        mpz_class prev = 0;
+        for (int j = 0; j < i+5; ++j) {
+            countNumOfAccept(j, i, result);
+
+            // Print results with alignment and formatting
+            std::cout << "  With the number of 'a's m = " << std::setw(2) << i
+                      << " | Accepting strings: " << std::setw(20) << result << std::endl;
+            if (result == 0 && prev != 0) {
+                i = j;
+            }
+            prev = result;
+        }
+        std::cout << "-----------------------------------------" << std::endl;
+    }
+
+    // Final result for the largest n
+    std::cout << std::endl;
+    std::cout << "===============================" << std::endl;
+    std::cout << "Final Summary" << std::endl;
+    std::cout << "===============================" << std::endl;
+    std::cout << "For the largest string size n = " << std::setw(3) << 99;
+    std::cout << ", the total number of accepting strings is: " << result << std::endl;
+    */
+
+   /*for (int i = 0; i < 100; ++i) {
+        std::cout<<"====================================================="<<std::endl;
+        for (int j = 0; j < i+3; ++j) {
+            countNumOfAccept(i,j, result);
+            std::cout << "For a string of size n = " << i ;
+            std::cout << " with m A's = " << j ;
+            std::cout << " the total number of accepting strings: ";
+            gmp_printf("%Zd\n", result);
+    
+        }
       
     }*/
-   
-   int input;
-   cout<<"N = ";
-    cin>>input;
-    if(input >= 0 && input <= 300){
-        cout<<" Answer:  "<<NthRecur(input)<<endl;
+
+    while (!inputValid) {
+        std::cout << "Enter the length of the strings n > 0 and n <= 300:  ";
+        std::cin >> n;
+        std::cout << "Enter the a number of a's:  ";
+        std::cin >> m;
+
+        if (n > 0 && n <= 300) {
+            countNumOfAccept(n, m, result);
+            inputValid = true;
+        } else {
+            std::cout << "Invalid input!" << std::endl;
+        }
     }
-    while(!cin || input < 0 || input > 300){
-        cin.clear();// clears the fail state of the cin stream
-        cin.ignore(200, '\n');// clears keyboard buffer for any extra characters
-            //prompts user for another input
-        cout<<"Invalid value input"<<endl;
-        cout<<"N = ";
-        cin>>input;
-        cout<<" Answer:  "<<NthRecur(input)<<endl;
-    }
-    
+    std::cout << "For a string of size n = " << n;
+    std::cout << " the total number of accepting strings: ";
+    std::cout << result << std::endl;
+
     return 0;
 }
