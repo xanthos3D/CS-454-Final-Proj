@@ -8,12 +8,6 @@ using namespace std;
 //g++ p1.cpp -lgmp -lgmpxx
 //./a.out
 
-/*
-
-
-*/
-
-
 //int value for the one failing state in the dfa
 static long FAIL_STATE = 1365;
 
@@ -122,23 +116,27 @@ are calculated.
 @post: return the number of valid string of length n or recurse from a given state to
 transition(state,'a')+transition(state,'b')+transition(state,'c')+transition(state,'d')
 *****************************************************************************************/
-mpz_class NthRecurHelper(long n,long currState,mpz_class arr[][1367]){
+mpz_class NthRecurHelper(long begin,long n,long currState,mpz_class arr[][1367]){
     //base casses
     
     //if the state is ever the fail state return zero
     if(currState == FAIL_STATE){
-        return arr[n][currState] = 0 ;
+        return arr[begin][currState] = 0 ;
     //if the length is 1 then that means we end in a accepting state and should return 1
-    }else if(n == 1){
-        return arr[n][currState] = 1;
+    }else if(n == begin){
+        return arr[begin][currState] = 1;
 
     //if the current position in our 2d array isnt -1 then return that value
-    }else if(arr[n][currState] != -1){
-        return arr[n][currState];
+    }else if(arr[begin][currState] != -1){
+        return arr[begin][currState];
 
     //recursively call  testing the current state and the four other states it can go to.
     }else{
-       return arr[n][currState] = NthRecurHelper(n-1,transitionFunction(currState,'a'),arr) + NthRecurHelper(n-1,transitionFunction(currState,'b'),arr) + NthRecurHelper(n-1,transitionFunction(currState,'c'),arr) + NthRecurHelper(n-1,transitionFunction(currState,'d'),arr) ;
+       return arr[begin][currState] = 
+         NthRecurHelper(begin+1,n,transitionFunction(currState,'a'),arr) +
+         NthRecurHelper(begin+1,n,transitionFunction(currState,'b'),arr) +
+         NthRecurHelper(begin+1,n,transitionFunction(currState,'c'),arr) + 
+         NthRecurHelper(begin+1,n,transitionFunction(currState,'d'),arr) ;
     }
    
 }
@@ -162,26 +160,9 @@ mpz_class NthRecur(long n){
         }
     }
 
-    return NthRecurHelper(n+1,encodeToState(""),arr);
-}
+    int begin = 0;
 
-/** **************************************************************************************
-Function to count the number of strings of length n with 'a' as the middle symbol.
-@pre: receives an odd integer n
-@post: returns the number of valid strings of length n with 'a' as the middle symbol.
-*****************************************************************************************/
-mpz_class countStringsWithMiddleA(long n) {
-    if (n % 2 == 0) {
-        return 0; // n must be odd
-    }
-    long midIndex = n / 2;
-    mpz_class count = 0;
-    for (char c : {'a', 'b', 'c', 'd'}) {
-        if (c == 'a') {
-            count += NthRecur(midIndex) * NthRecur(midIndex);
-        }
-    }
-    return count;
+    return NthRecurHelper(begin,n,encodeToState(""),arr);
 }
 
 /** **************************************************************************************
@@ -230,12 +211,12 @@ int main() {
     }*/
 
     //testing up to 310 values
-    /*for (int i = 0; i < 310; ++i) {
+    for (int i = 0; i < 20; ++i) {
          std::cout<< "result for "<<i<<" : " << NthRecur(i)<<std::endl;
       
-    }*/
+    }
    
-   int input;
+   /*int input;
    cout<<"N = ";
     cin>>input;
     if(input >= 0 && input <= 300){
@@ -249,7 +230,7 @@ int main() {
         cout<<"N = ";
         cin>>input;
         cout<<" Answer:  "<<NthRecur(input)<<endl;
-    }
+    }*/
     
     return 0;
 }
